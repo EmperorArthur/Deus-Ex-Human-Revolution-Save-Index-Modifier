@@ -23,6 +23,9 @@ void StringRead(fstream& inFile,string& aString){
 		aString.append(1,readChar);
 		assert(inFile.good());
 	}
+	//Last char read is '\0', so put it back, and remove it from the end of the string
+	// inFile.putback(readChar);
+	// aString.pop_back();		//It's so much easier to do this in C++11
 }
 void StringWrite(fstream& outFile,string& aString){
 	char temp = '\0';
@@ -30,31 +33,59 @@ void StringWrite(fstream& outFile,string& aString){
 		temp = aString[i];
 		outFile.write(&temp,1);
 	}
-	//Not needed, but it shouldn't hurt
-	// if(temp != '\0'){
-		// temp = '\0';
-		// outFile.write(&temp,1);
-	// }
 };
+
+//Used to determine the max string size.  Not currently used.
+/*
+int ChompZeros(fstream& inFile){
+	int numberOfZeros = 0;
+	char readChar = inFile.get();
+	assert(inFile.good());
+	while(readChar == '\0'){
+		numberOfZeros++;
+		readChar = inFile.get();
+		assert(inFile.good());
+	}
+	//Last char read isn't '\0', so put it back
+	inFile.putback(readChar);
+	return numberOfZeros;
+}
+*/
 
 struct saveIndex{
 	public:
 		//Total index size is 53 bytes
 		static const int TOTALSIZE = 53;
+		//Maximum size of a string (including the '\0' at the end)
+		static const int MAXSTRINGSIZE = 33;
+		//Size of the raw data section (aka things I haven't decoded yet)
+		static const int RAWDATASIZE = 20;
+		//The Filename (with a '\0' at the end of the string!!!!!!!!)
 		string name;
-		int rawDataSize;
-		char rawData[TOTALSIZE];
+		char rawData[RAWDATASIZE];
 		void read(fstream& inFile);
 		void write(fstream& outFile);
 };
 void saveIndex::read(fstream& inFile){
 	StringRead(inFile,name);
-	rawDataSize=TOTALSIZE-name.size();
-	inFile.read((char *) &rawData,rawDataSize);
+	//Make sure the string isn't too long
+	//NOTE:  Since the string currently has a trailing '\=0' this will falsly assert if the filename is exactly 32 char's long
+	assert(name.size() < MAXSTRINGSIZE);
+	//Skip padding zeros
+	inFile.seekg(MAXSTRINGSIZE - name.size(),ios_base::cur);
+	inFile.read((char *) &rawData,RAWDATASIZE);
 };
 void saveIndex::write(fstream& outFile){
 	StringWrite(outFile,name);
-	outFile.write((char *) &rawData,rawDataSize);
+	//Make sure the string isn't too long
+	//NOTE:  Since the string currently has a trailing '\=0' this will falsly assert if the filename is exactly 32 char's long
+	assert(name.size() < MAXSTRINGSIZE);
+	//Add the padding zeros
+	char temp = '\0';
+	for(int i=name.size();i<MAXSTRINGSIZE;i++){
+		outFile.write(&temp,1);
+	}
+	outFile.write((char *) &rawData,RAWDATASIZE);
 };
 
 //And now the main function
@@ -86,9 +117,10 @@ int main(int argc, char *argv[]){
 	//Read in all the save index data
 	saveIndex * allIndeces = new saveIndex[numberOfSaves];
 	for(int i=0;i<(int) numberOfSaves;i++){
-		cout << "Reading:  " << i << endl;
+		cout << "Reading Index: " << i << endl;
 		allIndeces[i].read(myFile);
-		cout << allIndeces[i].name << endl;
+		cout << "    Name: " << allIndeces[i].name << endl;
+		cout << "    Name (size): " << allIndeces[i].name.size() << endl;
 	}
 	myFile.close();
 	
