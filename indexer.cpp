@@ -24,8 +24,8 @@ void StringRead(fstream& inFile,string& aString){
 		assert(inFile.good());
 	}
 	//Last char read is '\0', so put it back, and remove it from the end of the string
-	// inFile.putback(readChar);
-	// aString.pop_back();		//It's so much easier to do this in C++11
+	inFile.putback(readChar);
+	aString.pop_back();		//It's so much easier to do this in C++11
 }
 void StringWrite(fstream& outFile,string& aString){
 	char temp = '\0';
@@ -69,7 +69,6 @@ struct saveIndex{
 void saveIndex::read(fstream& inFile){
 	StringRead(inFile,name);
 	//Make sure the string isn't too long
-	//NOTE:  Since the string currently has a trailing '\=0' this will falsly assert if the filename is exactly 32 char's long
 	assert(name.size() < MAXSTRINGSIZE);
 	//Skip padding zeros
 	inFile.seekg(MAXSTRINGSIZE - name.size(),ios_base::cur);
@@ -78,7 +77,6 @@ void saveIndex::read(fstream& inFile){
 void saveIndex::write(fstream& outFile){
 	StringWrite(outFile,name);
 	//Make sure the string isn't too long
-	//NOTE:  Since the string currently has a trailing '\=0' this will falsly assert if the filename is exactly 32 char's long
 	assert(name.size() < MAXSTRINGSIZE);
 	//Add the padding zeros
 	char temp = '\0';
@@ -87,6 +85,18 @@ void saveIndex::write(fstream& outFile){
 	}
 	outFile.write((char *) &rawData,RAWDATASIZE);
 };
+
+//Find an index with a certain name
+//If more than one index has the same name, then this only returns the first one
+//If none are found, returns '-1'
+int findIndex(saveIndex * indexArray,int arraySize,string findName){
+	for(int i=0;i<arraySize;i++){
+		if(!indexArray[i].name.compare(findName)){
+			return i;
+		}
+	}
+	return -1;
+}
 
 //And now the main function
 int main(int argc, char *argv[]){
@@ -112,11 +122,10 @@ int main(int argc, char *argv[]){
 	//The first byte is the number of save indeces
 	myFile.seekg(ios_base::beg);
 	myFile.read((char *) &numberOfSaves,4);
-	numberOfSaves = numberOfSaves;
 	cout << "There are " << numberOfSaves << " save files."<<endl;
 	//Read in all the save index data
 	saveIndex * allIndeces = new saveIndex[numberOfSaves];
-	for(int i=0;i<(int) numberOfSaves;i++){
+	for(int i=0;i<numberOfSaves;i++){
 		cout << "Reading Index: " << i << endl;
 		allIndeces[i].read(myFile);
 		cout << "    Name: " << allIndeces[i].name << endl;
@@ -125,16 +134,29 @@ int main(int argc, char *argv[]){
 	myFile.close();
 	
 	//This just leaves me with the user data 2 autosaves and the last manual save
+	assert(numberOfSaves >= 4);
 	int newNumberOfSaves = 4;
 	
 	//Open the output file
 	outFile.open("tempSaveIndex",ios::out|ios::binary);
 	outFile.seekg(ios_base::beg);
 	outFile.write((char *) &newNumberOfSaves,4);
-	//0 is the user data file
-	allIndeces[0].write(outFile);
-	allIndeces[1].write(outFile);
-	allIndeces[2].write(outFile);
+	int temp=-1;
+	//User data
+	temp=findIndex(allIndeces,numberOfSaves,"USER");
+	assert(temp != -1);
+	allIndeces[temp].write(outFile);
+	//Autosave 1
+	temp=findIndex(allIndeces,numberOfSaves,"GAMEA1_4");
+	assert(temp != -1);
+	allIndeces[temp].write(outFile);
+	//Autosave 2
+	temp=findIndex(allIndeces,numberOfSaves,"GAMEA2_4");
+	assert(temp != -1);
+	allIndeces[temp].write(outFile);
+	//Last save (It should be the highest numbered save)
+	//Rename it so that it's save #1
+	allIndeces[numberOfSaves-1].name = "gamer1_4";
 	allIndeces[numberOfSaves-1].write(outFile);
 	outFile.close();
 	
