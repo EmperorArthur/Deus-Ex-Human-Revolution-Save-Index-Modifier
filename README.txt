@@ -9,10 +9,10 @@ Just move gamer[1-next to last] out to whatever folder you like, and run this.
 New versions may do this for you, or actually regenerate the index based on what's in the folder.
 
 To Compile:
-g++ -std=c++11 -o indexer indexer.cpp
+make
 
 To Run:
-indexer.exe saveindex
+indexer.exe
 
 
 Analysis (without attempting to start an actual game):

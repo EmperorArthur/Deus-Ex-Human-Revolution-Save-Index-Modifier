@@ -8,158 +8,100 @@
 #include <fstream>
 #include <string>
 #include <cassert>
-//#include <cmath>
-//#include <iomanip>
+#include "indexfile.hpp"
 
 //Can't forget this
 using namespace std;
 
-void StringRead(fstream& inFile,string& aString){
-	char readChar = '0';
-	aString.clear();
-	//This reads untill a null charachter is read in.
-	while(readChar != '\0'){
-		inFile.read(&readChar,1);
-		aString.append(1,readChar);
-		assert(inFile.good());
-	}
-	//Last char read is '\0', so put it back, and remove it from the end of the string
-	inFile.putback(readChar);
-	aString.pop_back();		//It's so much easier to do this in C++11
-}
-void StringWrite(fstream& outFile,string& aString){
-	char temp = '\0';
-	for(int i=0; i< aString.size();i++){
-		temp = aString[i];
-		outFile.write(&temp,1);
-	}
-};
-
-//Used to determine the max string size.  Not currently used.
-/*
-int ChompZeros(fstream& inFile){
-	int numberOfZeros = 0;
-	char readChar = inFile.get();
-	assert(inFile.good());
-	while(readChar == '\0'){
-		numberOfZeros++;
-		readChar = inFile.get();
-		assert(inFile.good());
-	}
-	//Last char read isn't '\0', so put it back
-	inFile.putback(readChar);
-	return numberOfZeros;
-}
-*/
-
-struct saveIndex{
-	public:
-		//Total index size is 53 bytes
-		static const int TOTALSIZE = 53;
-		//Maximum size of a string (including the '\0' at the end)
-		static const int MAXSTRINGSIZE = 33;
-		//Size of the raw data section (aka things I haven't decoded yet)
-		static const int RAWDATASIZE = 20;
-		//The Filename (with a '\0' at the end of the string!!!!!!!!)
-		string name;
-		char rawData[RAWDATASIZE];
-		void read(fstream& inFile);
-		void write(fstream& outFile);
-};
-void saveIndex::read(fstream& inFile){
-	StringRead(inFile,name);
-	//Make sure the string isn't too long
-	assert(name.size() < MAXSTRINGSIZE);
-	//Skip padding zeros
-	inFile.seekg(MAXSTRINGSIZE - name.size(),ios_base::cur);
-	inFile.read((char *) &rawData,RAWDATASIZE);
-};
-void saveIndex::write(fstream& outFile){
-	StringWrite(outFile,name);
-	//Make sure the string isn't too long
-	assert(name.size() < MAXSTRINGSIZE);
-	//Add the padding zeros
-	char temp = '\0';
-	for(int i=name.size();i<MAXSTRINGSIZE;i++){
-		outFile.write(&temp,1);
-	}
-	outFile.write((char *) &rawData,RAWDATASIZE);
-};
-
-//Find an index with a certain name
-//If more than one index has the same name, then this only returns the first one
-//If none are found, returns '-1'
-int findIndex(saveIndex * indexArray,int arraySize,string findName){
-	for(int i=0;i<arraySize;i++){
-		if(!indexArray[i].name.compare(findName)){
-			return i;
-		}
-	}
-	return -1;
+//cout the help information
+void printHelp(){
+cout << "Description:" << endl;
+cout << "	This program is used to modify Deus Ex: Human Revolution saveindex files" << endl;
+cout << "	It can not (yet) build a saveindex file from scratch." << endl;
+cout << "	The primary purpose is to allow a user to archive old gamesaves easily" << endl;
+cout << endl;
+cout << "Default Usage:" << endl;
+cout << "	Removes all saves except the autosaves and Save 99 from \"saveindex\"" << endl;
+cout << "	It then renames Save 99 to Save 1, and outputs the file as \"saveindex.new\"" << endl;
+cout << endl;
+cout << "Arguments:" << endl;
+cout << "	-h		This help statement" << endl;
+cout << "	-nA		Do not include autosaves in the output file" << endl;
+cout << "	-f		Overide the default input file name" << endl;
 }
 
 //And now the main function
 int main(int argc, char *argv[]){
-	fstream myFile;		//The file to work with
-	fstream outFile;	//Temporary output file (Using a write temp,delete original, copy temp->original,delete temp approach)
-	int numberOfSaves;
+	//Program is designed around  a write temp, delete original, copy temp->original ,delete temp approach
+	//User can overide this behavior
+	string inFileName = "saveindex";
+	string outFileName = "saveindex.new";
+	indexFile mySaves;
+	fstream outFile;	//Output file
 	
-	//Make sure the filename is given
-	if(argc < 2){
-		cerr << "ERROR:  No file name given" << endl;
-		cerr << "Usage:" << endl;
-		cerr << "	" << argv[0] << " " << "filename" << endl;
-		return 1;
+	//Argument bools
+	bool includeAutosaves = true;
+	
+	//Handle arguments passed to the program
+	//WARNING:  Only handles the first argument for now
+	if(argc >= 2){
+		if(!string("-f").compare(argv[1])) {
+			cerr << "ERROR:  Command not (yet) implemented" << endl;
+			//inFileName = argv[1];
+			return 1;
+		}else if(!string("-nA").compare(argv[1])){
+			includeAutosaves = false;
+			cout << "Excluding Autosaves" << endl;
+		}else if(!string("-h").compare(argv[1])){
+			printHelp();
+			return 0;
+		}else{
+			cerr << "Command not recognized:  " << argv[1] << endl;
+			cout << endl;
+			printHelp();
+			return 1;
+		}
 	}
 	
-	//Open the file (if it doesn't exist, complain and exit
-	myFile.open(argv[1],ios::in|ios::binary);
-	if(!myFile.is_open()){
-		cerr << "ERROR:  Unable to open file  \"" << argv[1] << "\"" << endl;
-		return 2;
-	}
+	mySaves.read(inFileName);
 	
-	//The first byte is the number of save indeces
-	myFile.seekg(ios_base::beg);
-	myFile.read((char *) &numberOfSaves,4);
-	cout << "There are " << numberOfSaves << " save files."<<endl;
-	//Read in all the save index data
-	saveIndex * allIndeces = new saveIndex[numberOfSaves];
-	for(int i=0;i<numberOfSaves;i++){
-		cout << "Reading Index: " << i << endl;
-		allIndeces[i].read(myFile);
-		cout << "    Name: " << allIndeces[i].name << endl;
-		cout << "    Name (size): " << allIndeces[i].name.size() << endl;
-	}
-	myFile.close();
-	
+
 	//This just leaves me with the user data 2 autosaves and the last manual save
-	assert(numberOfSaves >= 4);
 	int newNumberOfSaves = 4;
+	//Knock that number down to 2 if not including the autosaves
+	if(!includeAutosaves){
+		newNumberOfSaves = 2;
+	}
+
+	//Make sure that we're not going to look at an empty array
+	assert(mySaves.size() >= newNumberOfSaves);
 	
 	//Open the output file
-	outFile.open("tempSaveIndex",ios::out|ios::binary);
-	outFile.seekg(ios_base::beg);
+	outFile.open(outFileName,ios::out|ios::binary);
 	outFile.write((char *) &newNumberOfSaves,4);
 	int temp=-1;
 	//User data
-	temp=findIndex(allIndeces,numberOfSaves,"USER");
+	temp=mySaves.findIndex("USER");
 	assert(temp != -1);
-	allIndeces[temp].write(outFile);
-	//Autosave 1
-	temp=findIndex(allIndeces,numberOfSaves,"GAMEA1_4");
-	assert(temp != -1);
-	allIndeces[temp].write(outFile);
-	//Autosave 2
-	temp=findIndex(allIndeces,numberOfSaves,"GAMEA2_4");
-	assert(temp != -1);
-	allIndeces[temp].write(outFile);
+	mySaves[temp].write(outFile);
+	//Can choose not to include these
+	if(includeAutosaves){
+		//Autosave 1
+		temp=mySaves.findIndex("GAMEA1_4");
+		assert(temp != -1);
+		mySaves[temp].write(outFile);
+		//Autosave 2
+		temp=mySaves.findIndex("GAMEA2_4");
+		assert(temp != -1);
+		mySaves[temp].write(outFile);
+	}
 	//Last save (It should be the highest numbered save)
 	//Rename it so that it's save #1
-	allIndeces[numberOfSaves-1].name = "gamer1_4";
-	allIndeces[numberOfSaves-1].write(outFile);
+	temp=mySaves.findIndex("GAMER99_4");
+	assert(temp != -1);
+	mySaves[temp].name = "GAMER1_4";
+	mySaves[temp].write(outFile);
 	outFile.close();
-	
-	delete[] allIndeces;
+
 	return 0;
 }
