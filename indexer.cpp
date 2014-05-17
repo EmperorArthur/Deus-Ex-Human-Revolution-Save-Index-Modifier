@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>	//For exit
+#include <unistd.h>	//For getopt
 #include "indexfile.hpp"
 
 //Can't forget this
@@ -25,7 +26,7 @@ cout << "	It then renames Save 99 to Save 1, and outputs the file as \"saveindex
 cout << endl;
 cout << "Arguments:" << endl;
 cout << "	-h		This help statement" << endl;
-cout << "	-nA		Do not include autosaves in the output file" << endl;
+cout << "	-n		Do not include autosaves in the output file" << endl;
 cout << "	-f		Overide the default input file name" << endl;
 }
 
@@ -38,31 +39,29 @@ int main(int argc, char *argv[]){
 	indexFile mySaves;
 	indexFile newSaves;
 	
-	//Argument bools
+	//Argument options
+	int opt;
 	bool includeAutosaves = true;
 	
 	//Handle arguments passed to the program
-	//WARNING:  Only handles the first argument for now
-	if(argc >= 2){
-		if(!string("-f").compare(argv[1])) {
-			if(argc >= 3){
-				inFileName = argv[2];
-			}else{
-				cerr << "Error: No filename provided!" << endl;
-				exit(1);
-			}
-		}else if(!string("-nA").compare(argv[1])){
-			includeAutosaves = false;
-			cout << "Excluding Autosaves" << endl;
-		}else if(!string("-h").compare(argv[1])){
-			printHelp();
-			exit(0);
-		}else{
-			cerr << "Command not recognized:  " << argv[1] << endl;
-			cout << endl;
-			printHelp();
-			exit(1);
-		}
+	while ((opt = getopt(argc, argv, "f:nh")) != -1) {
+	 switch (opt) {
+	  case 'n':
+		includeAutosaves = false;
+		cout << "Excluding Autosaves" << endl;
+		break;
+	  case 'f':
+		inFileName = string(optarg);
+		break;
+	  case 'h':
+		printHelp();
+		exit(1);
+	  default: /* '?' */
+		cerr << "Option(s) not recognized!" << endl;
+		cout << endl;
+		printHelp();
+		exit(1);
+	 }
 	}
 	
 	mySaves.read(inFileName);
