@@ -3,48 +3,29 @@
 #include <fstream>
 #include <cassert>
 #include <cstdlib>
-
-void StringRead(std::fstream& inFile,std::string& aString);
-void StringWrite(std::fstream& outFile,std::string& aString);
-
-void StringRead(std::fstream& inFile,std::string& aString){
-	char readChar = '0';
-	aString.clear();
-	//This reads untill a null charachter is read in.
-	while(readChar != '\0'){
-		inFile.read(&readChar,1);
-		aString.append(1,readChar);
-		assert(inFile.good());
-	}
-	//Last char read is '\0', so put it back, and remove it from the end of the string
-	inFile.putback(readChar);
-	aString.pop_back();		//It's so much easier to do this in C++11
-}
-void StringWrite(std::fstream& outFile,std::string& aString){
-	char temp = '\0';
-	for(unsigned int i=0; i< aString.size();i++){
-		temp = aString[i];
-		outFile.write(&temp,1);
-	}
-};
+#include <algorithm>
 
 void saveIndex::read(std::fstream& inFile){
-	StringRead(inFile,name);
+	//Read in the name
+	getline(inFile,name,'\0');
 	//Make sure the string isn't too long
 	assert(name.size() < MAXSTRINGSIZE);
-	//Skip padding zeros
-	inFile.seekg(MAXSTRINGSIZE - name.size(),std::ios_base::cur);
+	//Skip padding zeros (getline chomps the terminating char)
+	inFile.seekg(MAXSTRINGSIZE - (name.size() + 1),std::ios_base::cur);
+	//Read Raw Data
 	inFile.read((char *) &rawData,RAWDATASIZE);
 };
 void saveIndex::write(std::fstream& outFile){
-	StringWrite(outFile,name);
 	//Make sure the string isn't too long
 	assert(name.size() < MAXSTRINGSIZE);
+	//Write out the name
+	outFile.write(name.c_str(),name.size());
 	//Add the padding zeros
 	char temp = '\0';
 	for(int i=name.size();i<MAXSTRINGSIZE;i++){
 		outFile.write(&temp,1);
 	}
+	//Write Raw Data
 	outFile.write((char *) &rawData,RAWDATASIZE);
 };
 

@@ -12,3 +12,10 @@
 *.la
 *.a
 
+#Testing Files
+saveindex
+saveindex.new
+saveindex.new_reference
+
+#Actual program
+indexer.exe
