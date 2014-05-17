@@ -29,24 +29,9 @@ void saveIndex::write(std::fstream& outFile){
 	outFile.write((char *) &rawData,RAWDATASIZE);
 };
 
-//How many saves are in the index file
-int indexFile::size(){
-	return allIndeces.size();
-}
-
-saveIndex & indexFile::operator[](int i){
-	assert(i >= 0);
-	assert(i < this->size());
-	return allIndeces[i];
-}
-
-void indexFile::append(saveIndex & anIndex){
-	allIndeces.push_back(anIndex);
-}
-
 void indexFile::read(std::string inFileName = "saveindex"){
 	std::fstream inFile;
-	int numberOfSaves = 0;
+	unsigned int numberOfSaves = 0;
 	
 	//Open the file (if it doesn't exist, complain and exit)
 	inFile.open(inFileName,std::ios::in|std::ios::binary);
@@ -57,14 +42,14 @@ void indexFile::read(std::string inFileName = "saveindex"){
 	//The first byte is the number of save indeces
 	inFile.read((char *) &numberOfSaves,4);
 	std::cout << "There are " << numberOfSaves - 1 << " save files, and 1 USER file."<<std::endl;
-	allIndeces.reserve(numberOfSaves);
+	data.reserve(numberOfSaves);
 	
 	//Read in all the save index data
-	for(int i=0;i<numberOfSaves;i++){
+	for(unsigned int i=0;i<numberOfSaves;i++){
 		saveIndex temp;
 		temp.read(inFile);
-		allIndeces.push_back(temp);
-		std::cout << "    Name: " << allIndeces[i].name << std::endl;
+		data.push_back(temp);
+		std::cout << "    Name: " << data[i].name << std::endl;
 	}
 	
 	inFile.close();
@@ -72,29 +57,29 @@ void indexFile::read(std::string inFileName = "saveindex"){
 
 void indexFile::write(std::string outFileName = "saveindex.new"){
 	std::fstream outFile;
-	int numberOfSaves = this->size();
+	unsigned int numberOfSaves = data.size();
 	//Make sure that at least user data exists
-	assert(this->findIndex("USER") != -1);
+	assert(IndexByName(data,"USER") != data.end());
 	
 	outFile.open(outFileName,std::ios::out|std::ios::binary);
 	outFile.write((char *) &numberOfSaves,4);
 	
 	//Write out all the save index data
-	for(int i=0;i<numberOfSaves;i++){
-		allIndeces[i].write(outFile);
+	for(unsigned int i=0;i<numberOfSaves;i++){
+		data[i].write(outFile);
 	}
 	
 	outFile.close();
 };
 
-//Find an index with a certain name
+//Returns the first index with a given name
 //If more than one index has the same name, then this only returns the first one
-//If none are found, returns '-1'
-int indexFile::findIndex(std::string findName){
-	for(int i=0;i<this->size();i++){
-		if(!allIndeces[i].name.compare(findName)){
-			return i;
-		}
-	}
-	return -1;
+//WARNING:  This just up and asserts when it can't find it (BAD JUJU)
+std::vector<saveIndex>::iterator IndexByName(std::vector<saveIndex> & indexes,const std::string & findName){
+	auto pred = [findName](const saveIndex& index){
+		return (index.name.compare(findName) == 0);
+	};
+	auto foundIndex = find_if(indexes.begin(),indexes.end(),pred);
+	assert(foundIndex != indexes.end());
+	return foundIndex;
 }

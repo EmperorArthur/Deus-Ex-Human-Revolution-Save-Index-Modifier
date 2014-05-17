@@ -66,20 +66,20 @@ int main(int argc, char *argv[]){
 	
 	mySaves.read(inFileName);
 	
-	newSaves.append(mySaves[mySaves.findIndex("USER")]);
+	newSaves.data.push_back(*IndexByName(mySaves.data,"USER"));
 	
 	//Can choose not to include these
 	if(includeAutosaves){
 		//Autosave 1
-		newSaves.append(mySaves[mySaves.findIndex("GAMEA1_4")]);
+		newSaves.data.push_back(*IndexByName(mySaves.data,"GAMEA1_4"));
 		//Autosave 2
-		newSaves.append(mySaves[mySaves.findIndex("GAMEA2_4")]);
+		newSaves.data.push_back(*IndexByName(mySaves.data,"GAMEA2_4"));
 	}
 	//Last save (It should be the highest numbered save)
 	//Rename it so that it's save #1
-	newSaves.append(mySaves[mySaves.findIndex("GAMER99_4")]);
-	newSaves[newSaves.findIndex("GAMER99_4")].name = "GAMER1_4";
-
+	newSaves.data.push_back(*IndexByName(mySaves.data,"GAMER99_4"));
+	IndexByName(newSaves.data,"GAMER99_4")[0].name = "GAMER1_4";
+	
 	newSaves.write(outFileName);
 
 	return 0;

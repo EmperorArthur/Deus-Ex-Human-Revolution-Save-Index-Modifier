@@ -15,18 +15,20 @@ struct saveIndex{
 		char rawData[RAWDATASIZE];				//The raw data section (aka things I haven't decoded yet)
 };
 
+//Returns the first index with a given name
+//If more than one index has the same name, then this only returns the first one
+//WARNING:  This just up and asserts when it can't find it (BAD JUJU)
+std::vector<saveIndex>::iterator IndexByName(std::vector<saveIndex> & indexes,const std::string & findName);
+
 class indexFile{
 	public:
 		void read(std::string inFileName);
 		void write(std::string outFileName);
-		int size();									//How many saves are in the index file
-		int findIndex(std::string findName);		//Find an index with a certain name
-		void append(saveIndex & anIndex);			//Append an index to the end of the file
-		saveIndex & operator[](int i);
-	private:
-		std::vector<saveIndex> allIndeces;
+		std::vector<saveIndex> data;
 		
 };
+
+
 
 
 #endif //INDEXFILE_H
