@@ -1,7 +1,11 @@
 #include "indexfile.hpp"
 #include <iostream>
+#include <fstream>
 #include <cassert>
 #include <cstdlib>
+
+void StringRead(std::fstream& inFile,std::string& aString);
+void StringWrite(std::fstream& outFile,std::string& aString);
 
 void StringRead(std::fstream& inFile,std::string& aString){
 	char readChar = '0';
@@ -44,24 +48,26 @@ void saveIndex::write(std::fstream& outFile){
 	outFile.write((char *) &rawData,RAWDATASIZE);
 };
 
-indexFile::~indexFile(){
-	delete[] allIndeces;
-}
-
 //How many saves are in the index file
 int indexFile::size(){
-	return numberOfSaves;
+	return allIndeces.size();
 }
 
 saveIndex & indexFile::operator[](int i){
+	assert(i >= 0);
 	assert(i < this->size());
 	return allIndeces[i];
 }
 
+void indexFile::append(saveIndex & anIndex){
+	allIndeces.push_back(anIndex);
+}
+
 void indexFile::read(std::string inFileName = "saveindex"){
 	std::fstream inFile;
+	int numberOfSaves = 0;
 	
-	//Open the file (if it doesn't exist, complain and exit
+	//Open the file (if it doesn't exist, complain and exit)
 	inFile.open(inFileName,std::ios::in|std::ios::binary);
 	if(!inFile.is_open()){
 		std::cerr << "ERROR:  Unable to open file  \"" << inFileName << "\"" << std::endl;
@@ -70,24 +76,41 @@ void indexFile::read(std::string inFileName = "saveindex"){
 	//The first byte is the number of save indeces
 	inFile.read((char *) &numberOfSaves,4);
 	std::cout << "There are " << numberOfSaves - 1 << " save files, and 1 USER file."<<std::endl;
-	allIndeces = new saveIndex[numberOfSaves];
+	allIndeces.reserve(numberOfSaves);
 	
 	//Read in all the save index data
 	for(int i=0;i<numberOfSaves;i++){
-		std::cout << "Reading Index: " << i << std::endl;
-		allIndeces[i].read(inFile);
+		saveIndex temp;
+		temp.read(inFile);
+		allIndeces.push_back(temp);
 		std::cout << "    Name: " << allIndeces[i].name << std::endl;
-		std::cout << "    Name (size): " << allIndeces[i].name.size() << std::endl;
 	}
 	
 	inFile.close();
+};
+
+void indexFile::write(std::string outFileName = "saveindex.new"){
+	std::fstream outFile;
+	int numberOfSaves = this->size();
+	//Make sure that at least user data exists
+	assert(this->findIndex("USER") != -1);
+	
+	outFile.open(outFileName,std::ios::out|std::ios::binary);
+	outFile.write((char *) &numberOfSaves,4);
+	
+	//Write out all the save index data
+	for(int i=0;i<numberOfSaves;i++){
+		allIndeces[i].write(outFile);
+	}
+	
+	outFile.close();
 };
 
 //Find an index with a certain name
 //If more than one index has the same name, then this only returns the first one
 //If none are found, returns '-1'
 int indexFile::findIndex(std::string findName){
-	for(int i=0;i<numberOfSaves;i++){
+	for(int i=0;i<this->size();i++){
 		if(!allIndeces[i].name.compare(findName)){
 			return i;
 		}

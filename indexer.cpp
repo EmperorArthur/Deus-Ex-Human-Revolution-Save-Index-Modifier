@@ -5,10 +5,8 @@
 
 //Fun header files
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <cstdlib>	//For exit
-#include <cassert>
 #include "indexfile.hpp"
 
 //Can't forget this
@@ -38,7 +36,7 @@ int main(int argc, char *argv[]){
 	string inFileName = "saveindex";
 	string outFileName = "saveindex.new";
 	indexFile mySaves;
-	fstream outFile;	//Output file
+	indexFile newSaves;
 	
 	//Argument bools
 	bool includeAutosaves = true;
@@ -69,43 +67,21 @@ int main(int argc, char *argv[]){
 	
 	mySaves.read(inFileName);
 	
-
-	//This just leaves me with the user data 2 autosaves and the last manual save
-	int newNumberOfSaves = 4;
-	//Knock that number down to 2 if not including the autosaves
-	if(!includeAutosaves){
-		newNumberOfSaves = 2;
-	}
-
-	//Make sure that we're not going to look at an empty array
-	assert(mySaves.size() >= newNumberOfSaves);
+	newSaves.append(mySaves[mySaves.findIndex("USER")]);
 	
-	//Open the output file
-	outFile.open(outFileName,ios::out|ios::binary);
-	outFile.write((char *) &newNumberOfSaves,4);
-	int temp=-1;
-	//User data
-	temp=mySaves.findIndex("USER");
-	assert(temp != -1);
-	mySaves[temp].write(outFile);
 	//Can choose not to include these
 	if(includeAutosaves){
 		//Autosave 1
-		temp=mySaves.findIndex("GAMEA1_4");
-		assert(temp != -1);
-		mySaves[temp].write(outFile);
+		newSaves.append(mySaves[mySaves.findIndex("GAMEA1_4")]);
 		//Autosave 2
-		temp=mySaves.findIndex("GAMEA2_4");
-		assert(temp != -1);
-		mySaves[temp].write(outFile);
+		newSaves.append(mySaves[mySaves.findIndex("GAMEA2_4")]);
 	}
 	//Last save (It should be the highest numbered save)
 	//Rename it so that it's save #1
-	temp=mySaves.findIndex("GAMER99_4");
-	assert(temp != -1);
-	mySaves[temp].name = "GAMER1_4";
-	mySaves[temp].write(outFile);
-	outFile.close();
+	newSaves.append(mySaves[mySaves.findIndex("GAMER99_4")]);
+	newSaves[newSaves.findIndex("GAMER99_4")].name = "GAMER1_4";
+
+	newSaves.write(outFileName);
 
 	return 0;
 }
