@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdlib>	//For exit
 #include <cassert>
 #include "indexfile.hpp"
 
@@ -46,20 +47,23 @@ int main(int argc, char *argv[]){
 	//WARNING:  Only handles the first argument for now
 	if(argc >= 2){
 		if(!string("-f").compare(argv[1])) {
-			cerr << "ERROR:  Command not (yet) implemented" << endl;
-			//inFileName = argv[1];
-			return 1;
+			if(argc >= 3){
+				inFileName = argv[2];
+			}else{
+				cerr << "Error: No filename provided!" << endl;
+				exit(1);
+			}
 		}else if(!string("-nA").compare(argv[1])){
 			includeAutosaves = false;
 			cout << "Excluding Autosaves" << endl;
 		}else if(!string("-h").compare(argv[1])){
 			printHelp();
-			return 0;
+			exit(0);
 		}else{
 			cerr << "Command not recognized:  " << argv[1] << endl;
 			cout << endl;
 			printHelp();
-			return 1;
+			exit(1);
 		}
 	}
 	
