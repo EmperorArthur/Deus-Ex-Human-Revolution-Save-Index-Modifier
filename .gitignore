@@ -2,20 +2,35 @@
 *.slo
 *.lo
 *.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
 
 # Compiled Dynamic libraries
 *.so
 *.dylib
+*.dll
+
+# Fortran module files
+*.mod
 
 # Compiled Static libraries
 *.lai
 *.la
 *.a
+*.lib
 
-#Testing Files
+# Executables
+*.exe
+*.out
+*.app
+
+# Build Directory
+build/*
+
+# Testing Files
 saveindex
 saveindex.new
 saveindex.new_reference
-
-#Actual program
-indexer.exe
